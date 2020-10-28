@@ -1,4 +1,5 @@
 from bson import ObjectId
+from bson.errors import InvalidId
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
@@ -27,41 +28,61 @@ class MongoAPI:
                 else:
                     obj[item] = data[item]
             output.append(obj)
-        return output
+        return format_return_message("Success", "students", output)
 
     def get_student(self, student_id):
         log.info('Getting Student With Id ' + student_id)
-        response = self.collection.find_one({"_id": ObjectId(student_id)})
-        output = {}
-        if response:
-            for data in response:
-                if data == '_id':
-                    output[data] = str(response[data])
-                else:
-                    output[data] = response[data]
-        else:
-            output = {"error": "Student Not Found"}
-        return output
+        try:
+            response = self.collection.find_one({"_id": ObjectId(student_id)})
+            if response:
+                return format_return_message("Success", "student", get_student_obj(response))
+            else:
+                return format_return_message("Failed", "message", "Student Not Found")
+        except InvalidId:
+            return format_return_message("Failed", "message", "Invalid Object Id")
 
     def create_student(self, data):
         log.info('Creating Student')
         response = self.collection.insert_one(data)
-        output = {'Status': 'Successfully Inserted',
-                  'Inserted_Id': str(response.inserted_id)}
-        return output
+        return_obj = self.collection.find_one({"_id": ObjectId(response.inserted_id)})
+        return format_return_message("Success", "student", get_student_obj(return_obj))
 
     def update_student(self, student_id, data):
-        log.info('Updating Student')
-        response = self.collection.update_one({"_id": ObjectId(student_id)}, {'$set': data})
-        if response.modified_count == 0:
-            return {'Status': 'Nothing was updated'}
-        else:
-            return {'Status': 'Successfully Updated'}
+        log.info('Updating Student With Id ' + student_id)
+        try:
+            response = self.collection.find_one_and_update({"_id": ObjectId(student_id)}, {'$set': data})
+            if response:
+                return format_return_message("Success", "student", get_student_obj(response))
+            else:
+                return format_return_message("Failed", "message", "Student Not Found")
+        except InvalidId:
+            return format_return_message("Failed", "message", "Invalid Object Id")
 
     def delete_student(self, student_id):
-        log.info('Deleting Student')
-        response = self.collection.delete_one({"_id": ObjectId(student_id)})
-        if response.deleted_count == 0:
-            return {'Status': 'Student not found'}
+        log.info('Deleting Student With Id' + student_id)
+        try:
+            response = self.collection.find_one_and_delete({"_id": ObjectId(student_id)})
+            if response:
+                return format_return_message("Success", "student", get_student_obj(response))
+            else:
+                return format_return_message("Failed", "message", "Student Not Found")
+        except InvalidId:
+            return format_return_message("Failed", "message", "Invalid Object Id")
+
+
+def get_student_obj(response):
+    output = {}
+    for data in response:
+        if data == '_id':
+            output[data] = str(response[data])
         else:
-            return {'Status': 'Successfully Deleted'}
+            output[data] = response[data]
+    return output
+
+
+def format_return_message(status, key, response):
+    output = {
+        "Status": status,
+        key: response
+    }
+    return output
