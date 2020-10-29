@@ -1,0 +1,71 @@
+** Supervisor Configurations
+
+
+* How To Install
+
+sudo apt-get update -y
+
+sudo apt-get install supervisor -y
+
+sudo service supervisor start
+
+
+* How To make a configuration for this project
+
+cd /etc/supervisor/conf.d/
+
+sudo touch flask-api-gunicorn.conf
+
+sudo nano flask-api-gunicorn.conf
+
+--- Write that inside:
+----------------------------------------------------------------------------------------------------------------
+[program:flask-mongo-api]
+user=root
+directory=/home/regi/PycharmProjects/flask-mongo
+command=/home/regi/PycharmProjects/flask-mongo/venv/bin/gunicorn -w 3 -b 0.0.0.0:3000 wsgi:app --capture-output
+
+autostart=true
+autorestart=true
+stdout_logfile=/home/regi/PycharmProjects/flask-mongo/gunicorn.log
+#stderr_logfile=/home/regi/PycharmProjects/flask-mongo/gunicorn.err.log
+environment=PYTHONUNBUFFERED=1
+stdout_logfile_maxbytes=100MB
+stderr_logfile_maxbytes=100
+----------------------------------------------------------------------------------------------------------------
+
+
+* How to read configurations
+
+sudo supervisorctl reread
+
+sudo supervisorctl update
+
+
+* How to check Status
+
+sudo supervisorctl status flask-mongo-api
+
+
+* A few other useful commands:
+
+sudo supervisorctl start flask-mongo-api
+sudo supervisorctl stop flask-mongo-api
+sudo supervisorctl restart flask-mongo-api
+
+
+* How to make gunicorn available with GUI
+
+cd /etc/supervisor/
+
+sudo nano supervisord.conf
+
+--- Write that inside:
+----------------------------------------------------------------------------------------------------------------
+[inet_http_server]
+port = 0.0.0.0:9001
+username = user
+password = 123
+----------------------------------------------------------------------------------------------------------------
+
+sudo service supervisor restart
